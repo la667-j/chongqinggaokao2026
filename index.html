@@ -86,6 +86,7 @@
     <section class="stage">
       <div class="map-top">
         <h2>全国院校分布</h2>
+        <div class="batchline" id="batchLine"></div>
         <p id="mapDesc">蓝紫色越亮，该省可报院校越多 · 飞线从重庆指向匹配省份 · 点击省份查看院校</p>
       </div>
       <div id="map"></div>
@@ -111,6 +112,11 @@
           <div class="prov" id="dwProv">省份</div>
           <h3 id="dwTitle">院校列表 <small id="dwCount"></small></h3>
           <button class="x" id="dwClose">✕</button>
+        </div>
+        <div class="dw-sort" id="dwSort">
+          <span>排序</span>
+          <button data-by="rank" class="on">位次 低→高</button>
+          <button data-by="score">投档分 高→低</button>
         </div>
         <div class="dw-list" id="dwList"></div>
       </div>

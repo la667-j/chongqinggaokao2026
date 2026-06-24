@@ -20,6 +20,7 @@
     year: null, lo: null, hi: null,
     tiers: new Set(), major: '', school: '',
     prov: null, drawerMode: null,    // 'prov' | 'all'
+    allSort: 'rank',                 // 全部列表排序: 'rank' | 'score'
   };
   applyTrack(TKEYS[0]);
 
@@ -187,6 +188,7 @@
   function openDrawer(code) {
     state.drawerMode = 'prov'; state.prov = code;
     const v = curResult.byProv[code], info = PROV[code];
+    $('#dwSort').classList.remove('show');
     $('#dwProv').textContent = info.n + ' · ' + state.year + '年 · ' + GK.tracks[TRACK].name;
     $('#dwTitle').firstChild.textContent = '院校列表 ';
     $('#dwCount').textContent = `共 ${v.count} 所`;
@@ -199,10 +201,14 @@
 
   function openAll() {
     state.drawerMode = 'all'; state.prov = null;
-    const list = curResult.all;
-    $('#dwProv').textContent = `全部省份 · ${state.year}年 · ${GK.tracks[TRACK].name} · 按投档位次升序`;
+    const y = state.year;
+    const list = curResult.all.slice().sort((a, b) =>
+      state.allSort === 'score' ? b.s.y[y].mn - a.s.y[y].mn : a.s.y[y].mnr - b.s.y[y].mnr);
+    $('#dwProv').textContent = `全部省份 · ${y}年 · ${GK.tracks[TRACK].name}`;
     $('#dwTitle').firstChild.textContent = '全部可报院校 ';
     $('#dwCount').textContent = `共 ${list.length} 所`;
+    const sortBar = $('#dwSort'); sortBar.classList.add('show');
+    [...sortBar.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.by === state.allSort));
     const box = $('#dwList'); box.innerHTML = '';
     const frag = document.createDocumentFragment();
     list.forEach(r => frag.appendChild(schoolCard(r, true)));
@@ -281,9 +287,20 @@
   }
   function closeModal() { $('#mask').classList.remove('show'); $('#modal').classList.remove('show'); }
 
+  // -------- batch lines (特控线 / 本科线) --------
+  function renderBatchLine() {
+    const ln = LINES[state.year]; const el = $('#batchLine');
+    if (!ln) { el.innerHTML = ''; return; }
+    el.innerHTML =
+      `<span class="bl-track">${GK.tracks[TRACK].name} · ${state.year}年</span>` +
+      `<span class="bl-item">特控线 <b>${ln.tk}</b> <em>(位次 ${fmt(ln.tkr)})</em></span>` +
+      `<span class="bl-item">本科线 <b>${ln.bk}</b> <em>(位次 ${fmt(ln.bkr)})</em></span>`;
+  }
+
   // -------- stats + refresh --------
   function refresh() {
     curResult = compute();
+    renderBatchLine();
     $('#stSchools').textContent = fmt(curResult.nSchool);
     $('#stProv').textContent = curResult.nProv;
     $('#stMajor').textContent = fmt(curResult.nMajor);
@@ -382,6 +399,12 @@
   // view-all triggers
   $('#btnViewAll').onclick = () => { openAll(); closeSheet(); };
   $('#fabAll').onclick = () => { openAll(); closeSheet(); };
+
+  // all-list sort toggle
+  $('#dwSort').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (state.allSort === b.dataset.by) return;
+    state.allSort = b.dataset.by; openAll();
+  });
 
   // mobile filter bottom-sheet
   const side = document.querySelector('.side'), sheetMask = $('#sheetMask');
