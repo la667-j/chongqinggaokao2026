@@ -4,6 +4,7 @@
   const YEARS = GK.years;
   const CQ = PROV['50'].c;            // 重庆 center (飞线起点)
   const $ = s => document.querySelector(s);
+  const isTouch = window.matchMedia('(hover:none),(pointer:coarse)').matches; // 触屏设备
 
   // -------- state --------
   const state = {
@@ -114,7 +115,7 @@
         regions
       },
       tooltip: {
-        trigger: 'item', confine: true,
+        trigger: 'item', confine: true, triggerOn: isTouch ? 'none' : 'mousemove',
         backgroundColor: 'rgba(12,16,30,.94)', borderColor: 'rgba(255,255,255,.14)',
         textStyle: { color: '#eaf0fb', fontSize: 12 },
         formatter: p => {
@@ -150,6 +151,8 @@
 
   chart.on('click', p => {
     if (p.componentType === 'geo') {
+      chart.dispatchAction({ type: 'hideTip' });
+      chart.dispatchAction({ type: 'downplay', geoIndex: 0 });
       const code = nameToCode[p.name];
       if (code && curResult.byProv[code]) openDrawer(code);
     }
