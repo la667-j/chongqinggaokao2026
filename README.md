@@ -41,7 +41,7 @@ python build_data.py
 | `data.js` | 由 Excel 生成的院校 / 专业数据（997 所院校） |
 | `build_data.py` | 数据生成脚本 |
 | `geo_meta.json` | 省份中心坐标（飞线用） |
-| `vendor/` | 本地化的 ECharts 与中国地图 GeoJSON |
+| `lib/` | 本地化的 ECharts 与中国地图 GeoJSON |
 | `source-data/` | **原始数据文档**（投档明细表 + 一分一段表，见下） |
 
 ## 📊 数据来源
