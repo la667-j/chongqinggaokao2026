@@ -151,6 +151,8 @@ body{
 .chip .sw{width:10px;height:10px;border-radius:3px;flex:none;box-shadow:0 0 0 0 transparent;transition:.16s}
 .chip .nm{font-size:13px;font-weight:600;color:var(--txt-dim)}
 .chip .ct{margin-left:auto;font-size:11px;color:var(--txt-mute);font-weight:700}
+.chip-note{font-size:10.5px;color:var(--txt-mute);margin-top:11px;line-height:1.6}
+.chip-note b{color:var(--txt-dim);font-weight:700}
 .chip.on{background:rgba(94,129,255,.13);border-color:var(--stroke-2)}
 .chip.on .nm{color:var(--txt)}
 .chip[data-k="985"] .sw{background:var(--t985)} .chip[data-k="985"].on .sw{box-shadow:0 0 12px var(--t985)}
