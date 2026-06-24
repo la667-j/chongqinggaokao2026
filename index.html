@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>重庆物理类 · 高考志愿地图</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="hdr">
+    <div class="brand">
+      <div class="logo">🎓</div>
+      <div>
+        <h1>重庆 <span>物理类</span><span class="t-tail"> · 志愿填报地图</span></h1>
+        <p>按位次 · 专业 · 院校层次 智能定位 · 全国院校投档数据</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg" id="yearSeg"></div>
+    <div class="hsep"></div>
+    <div class="hstat">
+      <div class="it"><b class="acc" id="stSchools">0</b><span>匹配院校</span></div>
+      <div class="it"><b id="stProv">0</b><span>覆盖省份</span></div>
+      <div class="it"><b id="stMajor">0</b><span>匹配专业</span></div>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <aside class="side">
+      <div class="side-head">
+        <span class="grab"></span>
+        <b>筛选条件</b>
+        <button id="sideDone">完成</button>
+      </div>
+      <div class="card">
+        <div class="lab"><span class="dot"></span>位次区间</div>
+        <div class="rank-io">
+          <div class="fld"><input id="rkLo" type="number" min="1" placeholder="最低位次"></div>
+          <span class="tilde">~</span>
+          <div class="fld"><input id="rkHi" type="number" min="1" placeholder="最高位次"></div>
+        </div>
+        <div class="rank-hint" id="rkHint">填写你的位次区间，例如 <b>1000 ~ 2000</b></div>
+        <div class="presets" id="presets">
+          <button data-lo="1" data-hi="1000">前 1000</button>
+          <button data-lo="1000" data-hi="5000">1千-5千</button>
+          <button data-lo="5000" data-hi="10000">5千-1万</button>
+          <button data-lo="10000" data-hi="30000">1万-3万</button>
+          <button data-lo="30000" data-hi="60000">3万-6万</button>
+          <button data-lo="" data-hi="">全部</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lab"><span class="dot"></span>院校层次</div>
+        <div class="chips" id="tierChips">
+          <div class="chip" data-k="985"><span class="sw"></span><span class="nm">985</span><span class="ct" data-c="985"></span></div>
+          <div class="chip" data-k="211"><span class="sw"></span><span class="nm">211</span><span class="ct" data-c="211"></span></div>
+          <div class="chip" data-k="双一流"><span class="sw"></span><span class="nm">双一流</span><span class="ct" data-c="双一流"></span></div>
+          <div class="chip" data-k="普通"><span class="sw"></span><span class="nm">普通院校</span><span class="ct" data-c="普通"></span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lab"><span class="dot"></span>关键词筛选</div>
+        <div class="search">
+          <span class="ic">🔍</span>
+          <input id="kwMajor" type="text" placeholder="专业关键词，如 计算机 / 临床医学">
+        </div>
+        <div class="search">
+          <span class="ic">🏛</span>
+          <input id="kwSchool" type="text" placeholder="院校关键词，如 大学 / 理工">
+        </div>
+      </div>
+
+      <button class="reset" id="btnReset">↺ 重置全部筛选</button>
+    </aside>
+
+    <!-- Map stage -->
+    <section class="stage">
+      <div class="map-top">
+        <h2>全国院校分布</h2>
+        <p id="mapDesc">蓝紫色越亮，该省可报院校越多 · 飞线从重庆指向匹配省份 · 点击省份查看院校</p>
+      </div>
+      <div id="map"></div>
+
+      <div class="map-empty" id="mapEmpty">
+        <div class="box">
+          <div class="em">🛰️</div>
+          <b>没有符合条件的院校</b>
+          <span>试着放宽位次区间，或减少筛选条件</span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="t">可报院校数量</div>
+        <div class="bar"></div>
+        <div class="sc"><span>少</span><span id="lgMax">多</span></div>
+        <div class="ar"><i></i> 重庆 → 匹配省份飞线</div>
+      </div>
+
+      <!-- Drawer -->
+      <div class="drawer" id="drawer">
+        <div class="dw-hd">
+          <div class="prov" id="dwProv">省份</div>
+          <h3 id="dwTitle">院校列表 <small id="dwCount"></small></h3>
+          <button class="x" id="dwClose">✕</button>
+        </div>
+        <div class="dw-list" id="dwList"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Mobile filter FAB + sheet backdrop -->
+<button class="fab" id="fab"><span class="fab-ic">⚙</span>筛选<i class="fab-badge" id="fabCount"></i></button>
+<div class="sheet-mask" id="sheetMask"></div>
+
+<!-- Modal -->
+<div class="mask" id="mask"></div>
+<div class="modal" id="modal">
+  <div class="md-hd">
+    <div class="prov" id="mdProv"></div>
+    <h3 id="mdTitle"></h3>
+    <div class="badges" id="mdBadges"></div>
+    <button class="x" id="mdClose">✕</button>
+  </div>
+  <div class="ygrid" id="mdYears"></div>
+  <div class="md-tabs" id="mdTabs"></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>专业名称</th><th class="r">投档分</th><th class="r">位次</th></tr></thead>
+      <tbody id="mdBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="vendor/echarts.min.js"></script>
+<script src="vendor/china.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
