@@ -176,7 +176,7 @@
       <div class="top">
         ${showProv ? `<span class="pchip">${PROV[r.s.p].n}</span>` : ''}
         <div class="nm">${r.s.n}</div>
-        <div class="rk">投档位次 ${fmt(ys.mnr)}</div>
+        <div class="rk">位次 ${fmt(ys.mxr)}–${fmt(ys.mnr)}</div>
       </div>
       <div class="bot">
         <div class="badges">${badgeHTML(r.s.t)}</div>
@@ -193,7 +193,7 @@
     $('#dwProv').textContent = info.n + ' · ' + state.year + '年 · ' + GK.tracks[TRACK].name;
     $('#dwTitle').firstChild.textContent = '院校列表 ';
     $('#dwCount').textContent = `共 ${v.count} 所`;
-    const list = v.schools.slice().sort((a, b) => a.s.y[state.year].mnr - b.s.y[state.year].mnr);
+    const list = v.schools.slice().sort((a, b) => a.s.y[state.year].mxr - b.s.y[state.year].mxr);
     const box = $('#dwList'); box.innerHTML = '';
     list.forEach(r => box.appendChild(schoolCard(r, false)));
     box.scrollTop = 0;
@@ -205,7 +205,7 @@
     state.drawerMode = 'all'; state.prov = null;
     const y = state.year;
     const list = curResult.all.slice().sort((a, b) =>
-      state.allSort === 'score' ? b.s.y[y].mn - a.s.y[y].mn : a.s.y[y].mnr - b.s.y[y].mnr);
+      state.allSort === 'score' ? b.s.y[y].mn - a.s.y[y].mn : a.s.y[y].mxr - b.s.y[y].mxr);
     $('#dwProv').textContent = `全部省份 · ${y}年 · ${GK.tracks[TRACK].name}`;
     $('#dwTitle').firstChild.textContent = '全部可报院校 ';
     $('#dwCount').textContent = `共 ${list.length} 所`;
