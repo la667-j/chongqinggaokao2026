@@ -13,11 +13,12 @@
     <div class="brand">
       <div class="logo">🎓</div>
       <div>
-        <h1>重庆 <span>物理类</span><span class="t-tail"> · 志愿填报地图</span></h1>
+        <h1>重庆<span>高考</span><span class="t-tail"> · 志愿填报地图</span></h1>
         <p>按位次 · 专业 · 院校层次 智能定位 · 全国院校投档数据</p>
       </div>
     </div>
     <div class="spacer"></div>
+    <div class="seg track-seg" id="trackSeg"></div>
     <div class="seg" id="yearSeg"></div>
     <div class="hsep"></div>
     <div class="hstat">
@@ -35,6 +36,9 @@
         <b>筛选条件</b>
         <button id="sideDone">完成</button>
       </div>
+      <button class="view-all" id="btnViewAll">
+        <span>📋 查看全部院校</span><i class="va-badge" id="vaCount"></i>
+      </button>
       <div class="card">
         <div class="lab"><span class="dot"></span>位次区间</div>
         <div class="rank-io">
@@ -114,8 +118,11 @@
   </div>
 </div>
 
-<!-- Mobile filter FAB + sheet backdrop -->
-<button class="fab" id="fab"><span class="fab-ic">⚙</span>筛选<i class="fab-badge" id="fabCount"></i></button>
+<!-- Mobile FAB dock + sheet backdrop -->
+<div class="fab-dock">
+  <button class="fab fab-2" id="fabAll"><span class="fab-ic">📋</span>全部<i class="fab-badge" id="fabAllCount"></i></button>
+  <button class="fab" id="fab"><span class="fab-ic">☰</span>筛选<i class="fab-badge" id="fabCount"></i></button>
+</div>
 <div class="sheet-mask" id="sheetMask"></div>
 
 <!-- Modal -->

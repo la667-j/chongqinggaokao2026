@@ -1,19 +1,27 @@
-/* ===== 重庆物理类 · 志愿填报地图 ===== */
+/* ===== 重庆高考 · 志愿填报地图（物理类/历史类） ===== */
 (function () {
   const GK = window.GK, PROV = GK.prov;
-  const YEARS = GK.years;
   const CQ = PROV['50'].c;            // 重庆 center (飞线起点)
   const $ = s => document.querySelector(s);
-  const isTouch = window.matchMedia('(hover:none),(pointer:coarse)').matches; // 触屏设备
+  const isTouch = window.matchMedia('(hover:none),(pointer:coarse)').matches;
+
+  // -------- track / 当前数据 --------
+  const TKEYS = Object.keys(GK.tracks);
+  let TRACK, YEARS, LINES, SCHOOLS;
+  function applyTrack(key) {
+    TRACK = key;
+    const t = GK.tracks[key];
+    YEARS = t.years; LINES = t.lines; SCHOOLS = t.schools;
+    state.year = YEARS[YEARS.length - 1];
+  }
 
   // -------- state --------
   const state = {
-    year: YEARS[YEARS.length - 1],   // 默认最新年份
-    lo: null, hi: null,
-    tiers: new Set(),                // 空 = 全部层次
-    major: '', school: '',
-    prov: null,                      // 当前抽屉省份
+    year: null, lo: null, hi: null,
+    tiers: new Set(), major: '', school: '',
+    prov: null, drawerMode: null,    // 'prov' | 'all'
   };
+  applyTrack(TKEYS[0]);
 
   // -------- helpers --------
   function levelsOf(t) {
@@ -24,7 +32,6 @@
     if (!L.length) L.push('普通');
     return L;
   }
-  function topLevel(t) { return levelsOf(t)[0]; }
   function badgeHTML(t) {
     const map = { '985': ['b985', '985'], '211': ['b211', '211'], '双一流': ['bsyl', '双一流'], '普通': ['bnorm', '普通'] };
     return levelsOf(t).map(l => `<span class="bdg ${map[l][0]}">${map[l][1]}</span>`).join('');
@@ -32,7 +39,6 @@
   const fmt = n => n == null ? '—' : n.toLocaleString('en-US');
 
   // -------- core filtering --------
-  // returns {school, matched[], count} or null for the active year
   function evalSchool(s) {
     const ys = s.y[state.year];
     if (!ys) return null;
@@ -53,17 +59,18 @@
   }
 
   function compute() {
-    const byProv = {};            // code -> {count, majors, schools:[]}
+    const byProv = {}, all = [];
     let nSchool = 0, nMajor = 0;
-    for (const s of GK.schools) {
+    for (const s of SCHOOLS) {
       const r = evalSchool(s);
       if (!r) continue;
-      nSchool++; nMajor += r.count;
+      nSchool++; nMajor += r.count; all.push(r);
       const p = s.p;
       (byProv[p] || (byProv[p] = { count: 0, majors: 0, schools: [] }));
       byProv[p].count++; byProv[p].majors += r.count; byProv[p].schools.push(r);
     }
-    return { byProv, nSchool, nMajor, nProv: Object.keys(byProv).length };
+    all.sort((a, b) => a.s.y[state.year].mnr - b.s.y[state.year].mnr); // 投档位次 低→高
+    return { byProv, all, nSchool, nMajor, nProv: Object.keys(byProv).length };
   }
 
   // -------- ECharts map --------
@@ -82,7 +89,7 @@
   }
 
   function renderMap() {
-    const r = curResult, byProv = r.byProv;
+    const byProv = curResult.byProv;
     maxCount = Math.max(1, ...Object.values(byProv).map(v => v.count));
     $('#lgMax').textContent = maxCount;
 
@@ -145,7 +152,6 @@
     });
   }
 
-  // name -> code lookup
   const nameToCode = {};
   for (const c in PROV) nameToCode[PROV[c].n] = c;
 
@@ -159,43 +165,68 @@
   });
   window.addEventListener('resize', () => chart.resize());
 
-  // -------- drawer --------
+  // -------- drawer (province list / all list) --------
+  function schoolCard(r, showProv) {
+    const ys = r.s.y[state.year];
+    const el = document.createElement('div');
+    el.className = 'scard';
+    el.innerHTML = `
+      <div class="top">
+        ${showProv ? `<span class="pchip">${PROV[r.s.p].n}</span>` : ''}
+        <div class="nm">${r.s.n}</div>
+        <div class="rk">位次 ${fmt(ys.mxr)}–${fmt(ys.mnr)}</div>
+      </div>
+      <div class="bot">
+        <div class="badges">${badgeHTML(r.s.t)}</div>
+        <div class="mini">投档 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
+      </div>`;
+    el.onclick = () => openModal(r.s);
+    return el;
+  }
+
   function openDrawer(code) {
-    state.prov = code;
+    state.drawerMode = 'prov'; state.prov = code;
     const v = curResult.byProv[code], info = PROV[code];
-    $('#dwProv').textContent = info.n + ' · ' + state.year + '年';
+    $('#dwProv').textContent = info.n + ' · ' + state.year + '年 · ' + GK.tracks[TRACK].name;
+    $('#dwTitle').firstChild.textContent = '院校列表 ';
     $('#dwCount').textContent = `共 ${v.count} 所`;
     const list = v.schools.slice().sort((a, b) => a.s.y[state.year].mnr - b.s.y[state.year].mnr);
     const box = $('#dwList'); box.innerHTML = '';
-    for (const r of list) {
-      const ys = r.s.y[state.year];
-      const el = document.createElement('div');
-      el.className = 'scard fade-in';
-      el.innerHTML = `
-        <div class="top">
-          <div class="nm">${r.s.n}</div>
-          <div class="rk">位次 ${fmt(ys.mxr)}–${fmt(ys.mnr)}</div>
-        </div>
-        <div class="bot">
-          <div class="badges">${badgeHTML(r.s.t)}</div>
-          <div class="mini">投档 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
-        </div>`;
-      el.onclick = () => openModal(r.s);
-      box.appendChild(el);
-    }
+    list.forEach(r => box.appendChild(schoolCard(r, false)));
+    box.scrollTop = 0;
     $('#drawer').classList.add('open');
   }
-  function closeDrawer() { $('#drawer').classList.remove('open'); state.prov = null; }
+
+  function openAll() {
+    state.drawerMode = 'all'; state.prov = null;
+    const list = curResult.all;
+    $('#dwProv').textContent = `全部省份 · ${state.year}年 · ${GK.tracks[TRACK].name} · 按投档位次升序`;
+    $('#dwTitle').firstChild.textContent = '全部可报院校 ';
+    $('#dwCount').textContent = `共 ${list.length} 所`;
+    const box = $('#dwList'); box.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    list.forEach(r => frag.appendChild(schoolCard(r, true)));
+    box.appendChild(frag);
+    box.scrollTop = 0;
+    $('#drawer').classList.add('open');
+  }
+
+  function refreshDrawer() {
+    if (state.drawerMode === 'all') openAll();
+    else if (state.drawerMode === 'prov') {
+      if (curResult.byProv[state.prov]) openDrawer(state.prov); else closeDrawer();
+    }
+  }
+  function closeDrawer() { $('#drawer').classList.remove('open'); state.prov = null; state.drawerMode = null; }
 
   // -------- modal --------
   let modalSchool = null, modalYear = null;
   function openModal(s) {
     modalSchool = s; modalYear = s.y[state.year] ? state.year : YEARS.filter(y => s.y[y])[0];
-    $('#mdProv').textContent = PROV[s.p].n;
+    $('#mdProv').textContent = PROV[s.p].n + ' · ' + GK.tracks[TRACK].name;
     $('#mdTitle').textContent = s.n;
     $('#mdBadges').innerHTML = badgeHTML(s.t);
 
-    // year comparison cards
     const yg = $('#mdYears'); yg.innerHTML = '';
     YEARS.forEach(y => {
       const ys = s.y[y];
@@ -211,7 +242,6 @@
       yg.appendChild(c);
     });
 
-    // year tabs
     const tabs = $('#mdTabs'); tabs.innerHTML = '';
     YEARS.filter(y => s.y[y]).forEach(y => {
       const b = document.createElement('button');
@@ -251,41 +281,57 @@
   }
   function closeModal() { $('#mask').classList.remove('show'); $('#modal').classList.remove('show'); }
 
-  // -------- header stats + refresh --------
+  // -------- stats + refresh --------
   function refresh() {
     curResult = compute();
     $('#stSchools').textContent = fmt(curResult.nSchool);
     $('#stProv').textContent = curResult.nProv;
     $('#stMajor').textContent = fmt(curResult.nMajor);
-    $('#fabCount').textContent = fmt(curResult.nSchool);
+    const cnt = fmt(curResult.nSchool);
+    $('#fabCount').textContent = cnt;
+    $('#vaCount').textContent = cnt;
+    $('#fabAllCount').textContent = cnt;
     $('#mapEmpty').classList.toggle('show', curResult.nSchool === 0);
     renderMap();
-    if (state.prov) {
-      if (curResult.byProv[state.prov]) openDrawer(state.prov); else closeDrawer();
-    }
+    refreshDrawer();
   }
 
-  // tier counts for chip labels (based on current year + rank/keyword, excluding tier filter)
   function refreshTierCounts() {
     const saved = state.tiers; state.tiers = new Set();
     const cnt = { '985': 0, '211': 0, '双一流': 0, '普通': 0 };
-    for (const s of GK.schools) { if (evalSchool(s)) levelsOf(s.t).forEach(l => cnt[l]++); }
+    for (const s of SCHOOLS) { if (evalSchool(s)) levelsOf(s.t).forEach(l => cnt[l]++); }
     state.tiers = saved;
     document.querySelectorAll('.ct').forEach(e => e.textContent = cnt[e.dataset.c]);
   }
   const fullRefresh = () => { refreshTierCounts(); refresh(); };
 
-  // -------- UI bindings --------
-  // year segmented
-  const seg = $('#yearSeg');
-  const noteYr = { [YEARS[0]]: '最早', [YEARS[YEARS.length - 1]]: '最新' };
-  YEARS.forEach(y => {
-    const b = document.createElement('button');
-    b.innerHTML = `${y}<span class="ny">${noteYr[y] || '参考'}</span>`;
-    b.className = y === state.year ? 'on' : '';
-    b.onclick = () => { state.year = y; [...seg.children].forEach(x => x.classList.remove('on')); b.classList.add('on'); fullRefresh(); };
-    seg.appendChild(b);
-  });
+  // -------- track + year segmented --------
+  function renderTrackSeg() {
+    const seg = $('#trackSeg'); seg.innerHTML = '';
+    TKEYS.forEach(k => {
+      const b = document.createElement('button');
+      b.textContent = GK.tracks[k].name;
+      b.className = k === TRACK ? 'on' : '';
+      b.onclick = () => {
+        if (k === TRACK) return;
+        applyTrack(k);
+        [...seg.children].forEach(x => x.classList.remove('on')); b.classList.add('on');
+        closeDrawer(); renderYearSeg(); fullRefresh();
+      };
+      seg.appendChild(b);
+    });
+  }
+  function renderYearSeg() {
+    const seg = $('#yearSeg'); seg.innerHTML = '';
+    const note = { [YEARS[0]]: '最早', [YEARS[YEARS.length - 1]]: '最新' };
+    YEARS.forEach(y => {
+      const b = document.createElement('button');
+      b.innerHTML = `${y}<span class="ny">${note[y] || '参考'}</span>`;
+      b.className = y === state.year ? 'on' : '';
+      b.onclick = () => { state.year = y; [...seg.children].forEach(x => x.classList.remove('on')); b.classList.add('on'); fullRefresh(); };
+      seg.appendChild(b);
+    });
+  }
 
   function syncHint() {
     const h = $('#rkHint');
@@ -326,12 +372,16 @@
     state.lo = state.hi = null; state.tiers.clear(); state.major = state.school = '';
     $('#rkLo').value = ''; $('#rkHi').value = ''; $('#kwMajor').value = ''; $('#kwSchool').value = '';
     document.querySelectorAll('#tierChips .chip').forEach(c => c.classList.remove('on'));
-    syncHint(); setPresetActive(); closeDrawer(); fullRefresh();
+    syncHint(); setPresetActive(); fullRefresh();
   };
 
   $('#dwClose').onclick = closeDrawer;
   $('#mdClose').onclick = closeModal;
   $('#mask').onclick = closeModal;
+
+  // view-all triggers
+  $('#btnViewAll').onclick = () => { openAll(); closeSheet(); };
+  $('#fabAll').onclick = () => { openAll(); closeSheet(); };
 
   // mobile filter bottom-sheet
   const side = document.querySelector('.side'), sheetMask = $('#sheetMask');
@@ -344,8 +394,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeDrawer(); closeSheet(); } });
 
   // -------- init --------
-  syncHint(); setPresetActive(); fullRefresh();
+  renderTrackSeg(); renderYearSeg(); syncHint(); setPresetActive(); fullRefresh();
 
-  // test-only hook (enabled with #test in URL)
-  if (location.hash === '#test') window.__t = { openDrawer, openModal, state, get result() { return curResult; } };
+  if (location.hash === '#test') window.__t = { openDrawer, openModal, openAll, applyTrack, state, get result() { return curResult; } };
 })();

@@ -79,6 +79,11 @@ body{
   box-shadow:0 6px 16px -6px rgba(56,189,248,.8);
 }
 .seg button.on .ny{color:rgba(4,18,43,.65)}
+.track-seg button{font-size:13.5px;padding:8px 18px}
+.track-seg button.on{
+  background:linear-gradient(135deg,var(--violet),var(--indigo));color:#fff;
+  box-shadow:0 6px 16px -6px rgba(192,132,252,.85);
+}
 
 .hstat{display:flex;gap:22px;align-items:center}
 .hstat .it{text-align:right}
@@ -96,6 +101,16 @@ body{
   background:linear-gradient(180deg,rgba(255,255,255,.025),transparent);
   padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;
 }
+.view-all{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  width:100%;padding:14px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--cyan),var(--indigo) 55%,var(--violet));
+  color:#04122b;font:800 14px/1 inherit;
+  box-shadow:0 12px 26px -10px rgba(94,129,255,.8);transition:.16s;
+}
+.view-all:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.view-all .va-badge{background:rgba(4,18,43,.26);padding:3px 10px;border-radius:20px;font-size:12.5px;min-width:18px;text-align:center}
+.view-all .va-badge:empty{display:none}
 .card{
   background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r);
   padding:17px 16px;
@@ -213,6 +228,7 @@ body{
 .scard:hover{border-color:var(--stroke-2);background:var(--panel-2);transform:translateX(-3px)}
 .scard:hover::before{opacity:1}
 .scard .top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.scard .pchip{font-size:10px;font-weight:800;color:var(--cyan);background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.32);padding:2px 7px;border-radius:6px;white-space:nowrap;flex:none}
 .scard .nm{font-size:14.5px;font-weight:700;flex:1;line-height:1.3}
 .scard .rk{font-size:11px;color:var(--txt-mute);font-weight:700;background:rgba(0,0,0,.3);padding:3px 8px;border-radius:7px;white-space:nowrap}
 .scard .bot{display:flex;align-items:center;gap:10px}
@@ -288,7 +304,7 @@ tbody td .rk{color:var(--cyan)}
 
 /* mobile-only elements (hidden on desktop) */
 .side-head{display:none}
-.fab{display:none}
+.fab-dock{display:none}
 .sheet-mask{position:fixed;inset:0;z-index:24;background:rgba(3,5,12,.6);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:.25s}
 .sheet-mask.show{opacity:1;visibility:visible}
 
@@ -299,12 +315,12 @@ tbody td .rk{color:var(--cyan)}
 
 /* ===== Mobile / 手机适配 ===== */
 @media (max-width:720px){
-  .hdr{height:54px;padding:0 13px;gap:10px}
-  .logo{width:33px;height:33px;border-radius:10px;font-size:16px}
-  .brand h1{font-size:14px}
-  .brand p,.t-tail,.hsep{display:none}
+  .hdr{height:54px;padding:0 10px;gap:7px}
+  .logo{width:32px;height:32px;border-radius:9px;font-size:15px}
+  .brand h1,.brand p,.hsep{display:none}
   .seg{padding:3px}
-  .seg button{padding:7px 12px;font-size:12px}
+  .seg button{padding:7px 9px;font-size:11.5px}
+  .track-seg button{padding:7px 11px;font-size:12px}
   .seg button .ny{display:none}
 
   .body{grid-template-columns:1fr}
@@ -326,16 +342,24 @@ tbody td .rk{color:var(--cyan)}
   .side-head button{background:linear-gradient(135deg,var(--cyan),var(--indigo));color:#04122b;border:0;font:700 13px/1 inherit;padding:9px 17px;border-radius:10px;cursor:pointer}
   .reset{margin-top:2px}
 
-  /* floating filter button */
-  .fab{
-    display:flex;align-items:center;gap:7px;position:fixed;z-index:23;
+  /* floating action dock (全部 + 筛选) */
+  .fab-dock{
+    display:flex;gap:10px;position:fixed;z-index:23;
     right:15px;bottom:calc(17px + env(safe-area-inset-bottom));
-    background:linear-gradient(135deg,var(--cyan),var(--indigo) 60%,var(--violet));
-    color:#04122b;border:0;border-radius:30px;font:800 14px/1 inherit;
-    padding:13px 19px;box-shadow:0 13px 32px -8px rgba(56,189,248,.85);cursor:pointer;
   }
-  .fab .fab-ic{font-size:15px}
-  .fab .fab-badge{font-style:normal;background:rgba(4,18,43,.26);padding:2px 9px;border-radius:20px;font-size:12.5px;min-width:14px;text-align:center}
+  .fab{
+    display:flex;align-items:center;gap:6px;
+    border:0;border-radius:30px;font:800 13.5px/1 inherit;color:#04122b;
+    padding:12px 17px;cursor:pointer;
+    background:linear-gradient(135deg,var(--cyan),var(--indigo));
+    box-shadow:0 13px 32px -8px rgba(56,189,248,.85);
+  }
+  .fab-2{
+    background:linear-gradient(135deg,var(--violet),var(--indigo));color:#fff;
+    box-shadow:0 13px 32px -8px rgba(192,132,252,.85);
+  }
+  .fab .fab-ic{font-size:14px}
+  .fab .fab-badge{font-style:normal;background:rgba(0,0,0,.22);padding:2px 8px;border-radius:20px;font-size:12px;min-width:14px;text-align:center}
   .fab .fab-badge:empty{display:none}
 
   /* map overlays */
