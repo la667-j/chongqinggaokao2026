@@ -2,10 +2,12 @@
 """Build data.js for the Chongqing physics-track college application app."""
 import openpyxl, json, os
 
+import os.path as _p
+_DIR = _p.join(_p.dirname(_p.abspath(__file__)), 'source-data')
 FILES = {
-    2023: r'C:\Users\admin\Desktop\0\2\重庆2023物理类.xlsx',
-    2024: r'C:\Users\admin\Desktop\0\2\重庆2024物理类.xlsx',
-    2025: r'C:\Users\admin\Desktop\0\2\重庆2025物理类.xlsx',
+    2023: _p.join(_DIR, '重庆2023物理类.xlsx'),
+    2024: _p.join(_DIR, '重庆2024物理类.xlsx'),
+    2025: _p.join(_DIR, '重庆2025物理类.xlsx'),
 }
 YEARS = sorted(FILES)
 
