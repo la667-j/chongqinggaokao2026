@@ -4,6 +4,7 @@
   const CQ = PROV['50'].c;            // 重庆 center (飞线起点)
   const $ = s => document.querySelector(s);
   const isTouch = window.matchMedia('(hover:none),(pointer:coarse)').matches;
+  const fabDock = () => document.querySelector('.fab-dock');
 
   // -------- track / 当前数据 --------
   const TKEYS = Object.keys(GK.tracks);
@@ -175,11 +176,11 @@
       <div class="top">
         ${showProv ? `<span class="pchip">${PROV[r.s.p].n}</span>` : ''}
         <div class="nm">${r.s.n}</div>
-        <div class="rk">位次 ${fmt(ys.mxr)}–${fmt(ys.mnr)}</div>
+        <div class="rk">投档位次 ${fmt(ys.mnr)}</div>
       </div>
       <div class="bot">
         <div class="badges">${badgeHTML(r.s.t)}</div>
-        <div class="mini">投档 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
+        <div class="mini">投档线 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
       </div>`;
     el.onclick = () => openModal(r.s);
     return el;
@@ -197,6 +198,7 @@
     list.forEach(r => box.appendChild(schoolCard(r, false)));
     box.scrollTop = 0;
     $('#drawer').classList.add('open');
+    fabDock().classList.add('hide');
   }
 
   function openAll() {
@@ -215,6 +217,7 @@
     box.appendChild(frag);
     box.scrollTop = 0;
     $('#drawer').classList.add('open');
+    fabDock().classList.add('hide');
   }
 
   function refreshDrawer() {
@@ -223,7 +226,7 @@
       if (curResult.byProv[state.prov]) openDrawer(state.prov); else closeDrawer();
     }
   }
-  function closeDrawer() { $('#drawer').classList.remove('open'); state.prov = null; state.drawerMode = null; }
+  function closeDrawer() { $('#drawer').classList.remove('open'); state.prov = null; state.drawerMode = null; fabDock().classList.remove('hide'); }
 
   // -------- modal --------
   let modalSchool = null, modalYear = null;
@@ -352,8 +355,8 @@
 
   function syncHint() {
     const h = $('#rkHint');
-    if (state.lo == null && state.hi == null) h.innerHTML = '当前显示 <b>全部</b> 院校';
-    else h.innerHTML = `位次 <b>${state.lo == null ? '不限' : fmt(state.lo)}</b> ~ <b>${state.hi == null ? '不限' : fmt(state.hi)}</b>`;
+    if (state.lo == null && state.hi == null) h.innerHTML = '当前显示 <b>全部</b> 院校 · 位次值越小排名越靠前';
+    else h.innerHTML = `位次 <b>${state.lo == null ? '不限' : fmt(state.lo)}</b> ~ <b>${state.hi == null ? '不限' : fmt(state.hi)}</b> · 值越小排名越靠前`;
   }
   function setPresetActive() {
     document.querySelectorAll('#presets button').forEach(b => {

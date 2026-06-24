@@ -317,6 +317,7 @@ tbody td .rk{color:var(--cyan)}
 .fab-dock{display:none}
 .sheet-mask{position:fixed;inset:0;z-index:24;background:rgba(3,5,12,.6);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:.25s}
 .sheet-mask.show{opacity:1;visibility:visible}
+.fab-dock.hide{display:none}
 
 @media (max-width:1180px){
   .body{grid-template-columns:300px 1fr}
