@@ -50,6 +50,24 @@
     return MAJORS[b] ? b : null;
   }
 
+  // -------- 收藏 / 我的志愿表（localStorage 持久化） --------
+  let WISH = [];
+  try { WISH = (JSON.parse(localStorage.getItem('cqgk_wish') || '[]') || []).filter(w => w && w.t && w.c); } catch (e) { }
+  const isWished = (t, c) => WISH.some(w => w.t === t && w.c === c);
+  const schoolOf = (t, c) => (GK.tracks[t] ? GK.tracks[t].schools : []).find(s => s.c === c);
+  function saveWish() { try { localStorage.setItem('cqgk_wish', JSON.stringify(WISH)); } catch (e) { } }
+  function toggleWish(t, c) {
+    const i = WISH.findIndex(w => w.t === t && w.c === c);
+    if (i >= 0) WISH.splice(i, 1); else WISH.push({ t, c });
+    saveWish(); updateWishUI();
+  }
+  function toast(msg) {
+    let el = $('#toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
   // -------- core filtering --------
   function evalSchool(s) {
     const ys = s.y[state.year];
@@ -191,15 +209,17 @@
       <div class="bot">
         <div class="badges">${badgeHTML(r.s.t)}</div>
         <div class="mini">投档线 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
+        <button class="wstar${isWished(TRACK, r.s.c) ? ' on' : ''}" data-wt="${TRACK}" data-wc="${r.s.c}" title="收藏到志愿表">★</button>
       </div>`;
     el.onclick = () => openModal(r.s);
+    el.querySelector('.wstar').onclick = e => { e.stopPropagation(); toggleWish(TRACK, r.s.c); };
     return el;
   }
 
   function openDrawer(code) {
     state.drawerMode = 'prov'; state.prov = code;
     const v = curResult.byProv[code], info = PROV[code];
-    $('#dwSort').classList.remove('show');
+    $('#dwSort').classList.remove('show'); $('#dwTools').classList.remove('show');
     $('#dwProv').textContent = info.n + ' · ' + state.year + '年 · ' + GK.tracks[TRACK].name;
     $('#dwTitle').firstChild.textContent = '院校列表 ';
     $('#dwCount').textContent = `共 ${v.count} 所`;
@@ -219,6 +239,7 @@
     $('#dwProv').textContent = `全部省份 · ${y}年 · ${GK.tracks[TRACK].name}`;
     $('#dwTitle').firstChild.textContent = '全部可报院校 ';
     $('#dwCount').textContent = `共 ${list.length} 所`;
+    $('#dwTools').classList.remove('show');
     const sortBar = $('#dwSort'); sortBar.classList.add('show');
     [...sortBar.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.by === state.allSort));
     const box = $('#dwList'); box.innerHTML = '';
@@ -245,6 +266,10 @@
     $('#mdProv').textContent = PROV[s.p].n + ' · ' + GK.tracks[TRACK].name;
     $('#mdTitle').textContent = s.n;
     $('#mdBadges').innerHTML = badgeHTML(s.t);
+    const wished = isWished(TRACK, s.c);
+    $('#mdStar').classList.toggle('on', wished);
+    $('#mdStar').textContent = wished ? '★ 已收藏' : '☆ 收藏';
+    renderTrend(s);
 
     const yg = $('#mdYears'); yg.innerHTML = '';
     YEARS.forEach(y => {
@@ -372,6 +397,135 @@
       `<span class="bl-item">本科线 <b>${ln.bk}</b> <em>(位次 ${fmt(ln.bkr)})</em></span>`;
   }
 
+  // -------- 三年投档位次走势 --------
+  function renderTrend(s) {
+    const el = $('#mdTrend');
+    const ys = YEARS.filter(y => s.y[y]);
+    if (ys.length < 2) { el.innerHTML = ''; return; }
+    const vals = ys.map(y => s.y[y].mnr);
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    const W = 132, H = 38, pad = 7;
+    const xs = ys.map((_, i) => pad + i * (W - 2 * pad) / (ys.length - 1));
+    const yOf = v => mx === mn ? H / 2 : pad + (v - mn) / (mx - mn) * (H - 2 * pad);
+    const pts = xs.map((x, i) => x + ',' + yOf(vals[i]).toFixed(1)).join(' ');
+    const dots = xs.map((x, i) => `<circle cx="${x.toFixed(1)}" cy="${yOf(vals[i]).toFixed(1)}" r="3" fill="#9fd2ff"/>`).join('');
+    const stable = (mx - mn) / mn <= 0.2;
+    el.innerHTML = `<div class="box">
+      <span class="t">三年投档位次</span>
+      <svg width="${W}" height="${H}"><defs><linearGradient id="trg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs>
+        <polyline points="${pts}" fill="none" stroke="url(#trg)" stroke-width="2" stroke-linejoin="round"/>${dots}</svg>
+      <span class="lbls">${ys.map((y, i) => `${String(y).slice(2)}′ ${fmt(vals[i])}`).join('　')}</span>
+      <span class="tag ${stable ? 'stable' : 'vol'}">${stable ? '相对稳定' : '波动较大'}</span>
+    </div>`;
+  }
+
+  // -------- 我的志愿表 --------
+  function updateWishUI() {
+    $('#wlCount').textContent = WISH.length || '';
+    document.querySelectorAll('.wstar').forEach(b => b.classList.toggle('on', isWished(b.dataset.wt, b.dataset.wc)));
+    if (modalSchool) {
+      const on = isWished(TRACK, modalSchool.c);
+      $('#mdStar').classList.toggle('on', on);
+      $('#mdStar').textContent = on ? '★ 已收藏' : '☆ 收藏';
+    }
+    if (state.drawerMode === 'wish') openWishlist();
+  }
+
+  function openWishlist() {
+    state.drawerMode = 'wish'; state.prov = null;
+    $('#dwSort').classList.remove('show');
+    $('#dwTools').classList.toggle('show', WISH.length > 0);
+    $('#dwProv').textContent = '我的志愿表 · 本地保存';
+    $('#dwTitle').firstChild.textContent = '我的志愿表 ';
+    $('#dwCount').textContent = `共 ${WISH.length} 所`;
+    const box = $('#dwList'); box.innerHTML = '';
+    if (!WISH.length) {
+      box.innerHTML = '<div class="wl-empty">还没有收藏院校。<br/>在院校卡片或详情页点 <b>★</b> 即可加入志愿表。</div>';
+    } else {
+      WISH.forEach((w, idx) => {
+        const s = schoolOf(w.t, w.c); if (!s) return;
+        const y = s.y[state.year] ? state.year : Object.keys(s.y).sort().pop();
+        const ys = s.y[y];
+        const el = document.createElement('div'); el.className = 'wl-card';
+        el.innerHTML = `<div class="wl-ord">${idx + 1}</div>
+          <div class="wl-main">
+            <div class="nm">${s.n}</div>
+            <div class="sub"><span class="pc">${PROV[s.p].n}</span><span>${GK.tracks[w.t].name}</span><span>投档位次 <b>${fmt(ys.mxr)}–${fmt(ys.mnr)}</b></span><span>投档 <b>${ys.mn}</b></span></div>
+          </div>
+          <div class="wl-ctrl"><button class="up" ${idx === 0 ? 'disabled' : ''}>▲</button><button class="dn" ${idx === WISH.length - 1 ? 'disabled' : ''}>▼</button></div>
+          <button class="wl-del" title="移除">✕</button>`;
+        el.querySelector('.wl-main').onclick = () => openWishSchool(w, s);
+        el.querySelector('.up').onclick = () => moveWish(idx, -1);
+        el.querySelector('.dn').onclick = () => moveWish(idx, 1);
+        el.querySelector('.wl-del').onclick = () => { WISH.splice(idx, 1); saveWish(); updateWishUI(); };
+        box.appendChild(el);
+      });
+    }
+    box.scrollTop = 0;
+    $('#drawer').classList.add('open'); fabDock().classList.add('hide');
+  }
+  function moveWish(i, d) {
+    const j = i + d; if (j < 0 || j >= WISH.length) return;
+    [WISH[i], WISH[j]] = [WISH[j], WISH[i]]; saveWish(); openWishlist();
+  }
+  function openWishSchool(w, s) {
+    if (w.t !== TRACK) { applyTrack(w.t); renderTrackSeg(); renderYearSeg(); fullRefresh(); }
+    openModal(s);
+  }
+
+  function wishRows() {
+    return WISH.map((w, i) => {
+      const s = schoolOf(w.t, w.c); if (!s) return null;
+      const y = s.y[state.year] ? state.year : Object.keys(s.y).sort().pop();
+      const ys = s.y[y];
+      return { i: i + 1, track: GK.tracks[w.t].name, name: s.n, prov: PROV[s.p].n, tier: s.t, y, mn: ys.mn, mxr: ys.mxr, mnr: ys.mnr, nc: ys.nc };
+    }).filter(Boolean);
+  }
+  function exportCSV() {
+    const rows = wishRows(); if (!rows.length) return toast('志愿表为空');
+    const head = ['序号', '科类', '院校', '省份', '层次', '参考年份', '投档分', '最高分位次', '投档线位次', '录取专业数'];
+    const lines = [head.join(',')].concat(rows.map(r => [r.i, r.track, r.name, r.prov, r.tier, r.y, r.mn, r.mxr, r.mnr, r.nc].join(',')));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '我的志愿表.csv';
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('已导出 CSV');
+  }
+  function copyWish() {
+    const rows = wishRows(); if (!rows.length) return toast('志愿表为空');
+    const txt = rows.map(r => `${r.i}. ${r.name}（${r.prov}·${r.track}）投档${r.mn} 位次${fmt(r.mxr)}-${fmt(r.mnr)}`).join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('已复制志愿清单')).catch(() => toast('复制失败，请手动'));
+    else toast('当前环境不支持复制');
+  }
+
+  // -------- 院校对比 --------
+  function tierShort(t) {
+    const l = levelsOf(t)[0];
+    const cls = { '985': 'b985', '211': 'b211', '双一流': 'bsyl', '普通': '' }[l] || '';
+    return `<span class="${cls}">${l === '普通' ? '普通' : l}</span>`;
+  }
+  function openCompare() {
+    const items = WISH.map(w => ({ w, s: schoolOf(w.t, w.c) })).filter(x => x.s);
+    if (items.length < 2) return toast('至少收藏 2 所院校才能对比');
+    let h = '<table><thead><tr><th class="rowh">院校</th><th>省份</th><th>层次</th>';
+    YEARS.forEach(y => h += `<th>${y} 投档分<br/>投档位次</th>`);
+    h += '<th>录取专业</th></tr></thead><tbody>';
+    items.forEach(({ w, s }) => {
+      h += `<tr><td class="rowh">${s.n}<div style="font-size:10px;color:var(--txt-mute);font-weight:600">${GK.tracks[w.t].name}</div></td>`;
+      h += `<td>${PROV[s.p].n}</td><td>${tierShort(s.t)}</td>`;
+      let last = null;
+      YEARS.forEach(y => {
+        const ys = s.y[y];
+        if (ys) { last = ys; h += `<td><span class="sn">${ys.mn}</span><div style="font-size:11px;color:var(--cyan)">${fmt(ys.mnr)}</div></td>`; }
+        else h += '<td>—</td>';
+      });
+      h += `<td>${last ? last.nc : '—'}</td></tr>`;
+    });
+    h += '</tbody></table>';
+    $('#cmpBody').innerHTML = h;
+    $('#cmpMask').classList.add('show'); $('#cmpModal').classList.add('show');
+  }
+  function closeCompare() { $('#cmpMask').classList.remove('show'); $('#cmpModal').classList.remove('show'); }
+
   // -------- stats + refresh --------
   function refresh() {
     curResult = compute();
@@ -480,6 +634,16 @@
   $('#mjClose').onclick = closeMjPanel;
   $('#mjMask').onclick = closeMjPanel;
 
+  // 我的志愿表 + 收藏 + 对比
+  $('#btnWish').onclick = () => { openWishlist(); closeSheet(); };
+  $('#mdStar').onclick = () => { if (modalSchool) toggleWish(TRACK, modalSchool.c); };
+  $('#wlCsv').onclick = exportCSV;
+  $('#wlCopy').onclick = copyWish;
+  $('#wlClear').onclick = () => { if (WISH.length && confirm('清空我的志愿表？')) { WISH = []; saveWish(); updateWishUI(); } };
+  $('#wlCompare').onclick = openCompare;
+  $('#cmpClose').onclick = closeCompare;
+  $('#cmpMask').onclick = closeCompare;
+
   // all-list sort toggle
   $('#dwSort').querySelectorAll('button').forEach(b => b.onclick = () => {
     if (state.allSort === b.dataset.by) return;
@@ -496,12 +660,13 @@
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if ($('#mjPanel').classList.contains('show')) closeMjPanel();
+    if ($('#cmpModal').classList.contains('show')) closeCompare();
+    else if ($('#mjPanel').classList.contains('show')) closeMjPanel();
     else { closeModal(); closeDrawer(); closeSheet(); }
   });
 
   // -------- init --------
-  renderTrackSeg(); renderYearSeg(); syncHint(); setPresetActive(); fullRefresh();
+  renderTrackSeg(); renderYearSeg(); syncHint(); setPresetActive(); fullRefresh(); updateWishUI();
 
-  if (location.hash === '#test') window.__t = { openDrawer, openModal, openAll, applyTrack, lookupMajor, renderMajorDetail, renderMajorWiki, state, get result() { return curResult; } };
+  if (location.hash === '#test') window.__t = { openDrawer, openModal, openAll, openWishlist, openCompare, toggleWish, applyTrack, lookupMajor, renderMajorDetail, renderMajorWiki, get WISH() { return WISH; }, state, get result() { return curResult; } };
 })();

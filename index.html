@@ -40,6 +40,7 @@
         <span>📋 查看全部院校</span><i class="va-badge" id="vaCount"></i>
       </button>
       <button class="view-all alt" id="btnWiki"><span>📖 专业百科</span></button>
+      <button class="view-all alt" id="btnWish"><span>⭐ 我的志愿表</span><i class="va-badge" id="wlCount"></i></button>
       <div class="card">
         <div class="lab"><span class="dot"></span>位次区间</div>
         <div class="rank-io">
@@ -120,6 +121,12 @@
           <button data-by="rank" class="on">位次 低→高</button>
           <button data-by="score">投档分 高→低</button>
         </div>
+        <div class="dw-tools" id="dwTools">
+          <button id="wlCompare">📊 对比</button>
+          <button id="wlCopy">📋 复制</button>
+          <button id="wlCsv">⬇ CSV</button>
+          <button id="wlClear" class="danger">清空</button>
+        </div>
         <div class="dw-list" id="dwList"></div>
       </div>
     </section>
@@ -147,8 +154,10 @@
     <div class="prov" id="mdProv"></div>
     <h3 id="mdTitle"></h3>
     <div class="badges" id="mdBadges"></div>
+    <button class="md-star" id="mdStar"></button>
     <button class="x" id="mdClose">✕</button>
   </div>
+  <div class="md-trend" id="mdTrend"></div>
   <div class="ygrid" id="mdYears"></div>
   <div class="md-tabs" id="mdTabs"></div>
   <div class="tbl-wrap">
@@ -157,6 +166,13 @@
       <tbody id="mdBody"></tbody>
     </table>
   </div>
+</div>
+
+<!-- 院校对比 -->
+<div class="cmp-mask" id="cmpMask"></div>
+<div class="cmp-modal" id="cmpModal">
+  <div class="cmp-hd"><h3>📊 院校对比</h3><button class="x" id="cmpClose">✕</button></div>
+  <div class="cmp-body" id="cmpBody"></div>
 </div>
 
 <script src="lib/echarts.min.js"></script>

@@ -365,6 +365,71 @@ tbody td .rk{color:var(--cyan)}
 tbody tr.has-mj{cursor:pointer}
 tbody tr.has-mj:hover .mn{color:var(--violet)}
 
+/* ===== 收藏 / 我的志愿表 / 院校对比 ===== */
+.wstar{flex:none;width:26px;height:26px;border:0;background:none;color:var(--txt-mute);font-size:16px;cursor:pointer;line-height:1;border-radius:7px;transition:.15s}
+.wstar:hover{color:var(--t211);background:rgba(251,191,36,.13)}
+.wstar.on{color:var(--t211)}
+.md-star{position:absolute;top:20px;right:64px;border:1px solid var(--stroke);background:var(--panel);color:var(--txt-dim);font:700 12.5px/1 inherit;padding:9px 13px;border-radius:9px;cursor:pointer;transition:.15s}
+.md-star:hover{border-color:var(--stroke-2);color:var(--txt)}
+.md-star.on{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.42);color:var(--t211)}
+
+.dw-tools{display:none;gap:7px;padding:13px 16px 0;flex-wrap:wrap}
+.dw-tools.show{display:flex}
+.dw-tools button{flex:1;min-width:62px;background:var(--panel);border:1px solid var(--stroke);border-radius:9px;color:var(--txt-dim);font:600 12px/1 inherit;padding:10px 6px;cursor:pointer;transition:.15s}
+.dw-tools button:hover{border-color:var(--stroke-2);color:var(--txt);background:var(--panel-2)}
+.dw-tools button.danger:hover{color:var(--t985);border-color:rgba(251,111,146,.4);background:rgba(251,111,146,.1)}
+
+.wl-card{display:flex;align-items:center;gap:10px;flex:none;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:11px 12px;transition:.16s}
+.wl-card:hover{border-color:var(--stroke-2);background:var(--panel-2)}
+.wl-ord{flex:none;width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--indigo));color:#04122b;font:800 12px/24px inherit;text-align:center}
+.wl-main{flex:1;min-width:0;cursor:pointer}
+.wl-main .nm{font-size:14px;font-weight:700;line-height:1.3}
+.wl-main .sub{font-size:11px;color:var(--txt-mute);margin-top:4px;display:flex;flex-wrap:wrap;gap:3px 9px}
+.wl-main .sub b{color:var(--cyan);font-weight:700}
+.wl-main .sub .pc{color:var(--txt-dim);font-weight:700}
+.wl-ctrl{flex:none;display:flex;flex-direction:column;gap:3px}
+.wl-ctrl button{width:22px;height:18px;border:1px solid var(--stroke);background:var(--panel);color:var(--txt-dim);border-radius:5px;cursor:pointer;font-size:9px;line-height:1;padding:0;transition:.15s}
+.wl-ctrl button:hover{color:var(--txt);border-color:var(--stroke-2)}
+.wl-ctrl button:disabled{opacity:.3;cursor:default}
+.wl-del{flex:none;width:26px;height:26px;border:0;background:none;color:var(--txt-mute);font-size:15px;cursor:pointer;border-radius:6px;transition:.15s}
+.wl-del:hover{color:var(--t985);background:rgba(251,111,146,.13)}
+.wl-empty{text-align:center;color:var(--txt-mute);font-size:13px;padding:50px 24px;line-height:1.9}
+.wl-empty b{color:var(--txt-dim)}
+
+.md-trend{padding:18px 26px 0}
+.md-trend .box{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:11px 15px}
+.md-trend .t{font-size:11.5px;color:var(--txt-dim);font-weight:700;white-space:nowrap}
+.md-trend svg{flex:none}
+.md-trend .lbls{font-size:10.5px;color:var(--txt-mute);font-variant-numeric:tabular-nums}
+.md-trend .tag{margin-left:auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;white-space:nowrap}
+.md-trend .tag.stable{color:var(--ok);background:rgba(52,211,153,.14)}
+.md-trend .tag.vol{color:var(--t211);background:rgba(251,191,36,.14)}
+
+.cmp-mask{position:fixed;inset:0;z-index:60;background:rgba(3,5,12,.66);backdrop-filter:blur(6px);display:none;opacity:0;transition:.2s}
+.cmp-mask.show{display:block;opacity:1}
+.cmp-modal{position:fixed;z-index:61;top:50%;left:50%;transform:translate(-50%,-46%) scale(.98);opacity:0;pointer-events:none;
+  width:min(960px,94vw);max-height:88vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(16,21,38,.99),rgba(9,12,23,.99));border:1px solid var(--stroke-2);border-radius:20px;box-shadow:var(--shadow);transition:.26s cubic-bezier(.3,1.1,.4,1)}
+.cmp-modal.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+.cmp-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--stroke)}
+.cmp-hd h3{font-size:18px;font-weight:800}
+.cmp-hd .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--stroke);background:var(--panel);color:var(--txt-dim);cursor:pointer;font-size:16px;display:grid;place-items:center;transition:.16s}
+.cmp-hd .x:hover{color:#fff;background:rgba(251,111,146,.16);border-color:var(--stroke-2)}
+.cmp-body{overflow:auto;padding:6px 0 10px}
+.cmp-body table{width:100%;min-width:600px;border-collapse:collapse}
+.cmp-body th,.cmp-body td{padding:11px 13px;font-size:12.5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+.cmp-body thead th{position:sticky;top:0;background:#0c1122;color:var(--txt-mute);font-weight:700;z-index:1}
+.cmp-body td.rowh,.cmp-body th.rowh{position:sticky;left:0;background:#0c1122;text-align:left;z-index:2;font-weight:700;color:var(--txt-dim)}
+.cmp-body .sn{font-weight:800;color:var(--txt)}
+.cmp-body .best{color:var(--ok);font-weight:800}
+.cmp-body .b985{color:var(--t985)} .cmp-body .b211{color:var(--t211)} .cmp-body .bsyl{color:var(--tsyl)}
+
+.toast{position:fixed;left:50%;bottom:42px;transform:translateX(-50%) translateY(18px);z-index:80;
+  background:rgba(16,21,38,.97);border:1px solid var(--stroke-2);color:var(--txt);
+  font-size:13px;font-weight:600;padding:11px 20px;border-radius:30px;box-shadow:var(--shadow);
+  opacity:0;visibility:hidden;transition:.22s;pointer-events:none}
+.toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+
 .fade-in{animation:fadeIn .35s ease both}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
@@ -472,4 +537,9 @@ tbody tr.has-mj:hover .mn{color:var(--violet)}
   .mjpanel.show{transform:translateY(0)}
   .mj-inner{padding:24px 16px calc(28px + env(safe-area-inset-bottom))}
   .mj-name{font-size:21px}
+
+  .md-trend{padding:14px 16px 0}
+  .md-star{position:static;margin-top:12px}
+  .cmp-modal{width:96vw;max-height:90vh}
+  .cmp-hd{padding:16px}
 }
