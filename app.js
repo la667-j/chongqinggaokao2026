@@ -40,6 +40,16 @@
   }
   const fmt = n => n == null ? '—' : n.toLocaleString('en-US');
 
+  // -------- 专业详解手册 --------
+  const MAJORS = window.MAJORS || {};
+  const majorBase = n => n.split(/[（(]/)[0].trim();
+  function lookupMajor(name) {
+    if (!name) return null;
+    if (MAJORS[name]) return name;
+    const b = majorBase(name);
+    return MAJORS[b] ? b : null;
+  }
+
   // -------- core filtering --------
   function evalSchool(s) {
     const ys = s.y[state.year];
@@ -279,16 +289,78 @@
     const body = $('#mdBody'); body.innerHTML = '';
     for (const m of majors) {
       const hit = (modalYear === state.year) && inRange(m);
+      const mk = lookupMajor(m[0]);
       const tr = document.createElement('tr');
-      if (hit) tr.className = 'hit';
+      tr.className = (hit ? 'hit ' : '') + (mk ? 'has-mj' : '');
       tr.innerHTML = `
-        <td><span class="mn">${m[0]}</span>${hit ? '<span class="dim-pill">符合</span>' : ''}</td>
+        <td><span class="mn">${m[0]}</span>${mk ? '<span class="mj-link">详解</span>' : ''}${hit ? '<span class="dim-pill">符合</span>' : ''}</td>
         <td class="r"><span class="sc">${m[1]}</span></td>
         <td class="r"><span class="rk">${fmt(m[2])}</span></td>`;
+      if (mk) tr.onclick = () => renderMajorDetail(mk, false);
       body.appendChild(tr);
     }
   }
   function closeModal() { $('#mask').classList.remove('show'); $('#modal').classList.remove('show'); }
+
+  // -------- 专业详解 / 专业百科 滑出面板 --------
+  function openMjPanel() { $('#mjMask').classList.add('show'); $('#mjPanel').classList.add('show'); }
+  function closeMjPanel() { $('#mjMask').classList.remove('show'); $('#mjPanel').classList.remove('show'); }
+
+  function salBars(sal) {
+    const CAP = 300000;
+    return sal.map(([ind, a, b]) => `
+      <div class="ind">对口行业：${ind}</div>
+      ${a ? `<div class="it"><div class="row"><span>城镇非私营单位</span><b>¥${a.toLocaleString()}</b></div><div class="bar a"><i style="width:${Math.min(100, a / CAP * 100)}%"></i></div></div>` : ''}
+      ${b ? `<div class="it"><div class="row"><span>城镇私营单位</span><b>¥${b.toLocaleString()}</b></div><div class="bar b"><i style="width:${Math.min(100, b / CAP * 100)}%"></i></div></div>` : ''}`).join('');
+  }
+
+  function renderMajorDetail(name, fromWiki) {
+    const rec = MAJORS[name]; if (!rec) return;
+    const jyText = (rec.jy || '').split(/对口行业参考/)[0].replace(/[。；;\s]+$/, '').trim();
+    $('#mjInner').innerHTML = `
+      ${fromWiki ? '<button class="mj-back" id="mjBack">← 返回专业百科</button>' : ''}
+      <div class="mj-cat">${rec.ml || ''}${rec.lc ? ' · ' + rec.lc : ''}</div>
+      <h3 class="mj-name">${name}</h3>
+      <div class="mj-brief">
+        ${rec.lc ? `<span>专业类：${rec.lc}</span>` : ''}
+        ${rec.xz ? `<span>学制：${rec.xz}</span>` : ''}
+        ${rec.xw ? `<span>${rec.xw}</span>` : ''}
+      </div>
+      ${rec.nh ? `<div class="mj-sec"><div class="h">专业内涵</div><p>${rec.nh}</p></div>` : ''}
+      ${rec.mb ? `<div class="mj-sec"><div class="h">培养目标</div><p>${rec.mb}</p></div>` : ''}
+      ${rec.kc && rec.kc.length ? `<div class="mj-sec"><div class="h">核心课程</div><div class="mj-chips">${rec.kc.map(c => `<span>${c}</span>`).join('')}</div></div>` : ''}
+      <div class="mj-sec"><div class="h">就业方向与薪酬</div>
+        ${jyText ? `<p>${jyText}</p>` : ''}
+        ${rec.sal && rec.sal.length ? `<div class="mj-sal">${salBars(rec.sal)}<div class="note">薪酬为对口行业年平均工资（行业口径，非专业口径）。来源：国家统计局《2024 年城镇单位就业人员年平均工资》。</div></div>` : ''}
+      </div>`;
+    if (fromWiki) $('#mjBack').onclick = () => renderMajorWiki();
+    $('#mjInner').scrollTop = 0;
+    openMjPanel();
+  }
+
+  function renderMajorWiki() {
+    $('#mjInner').innerHTML = `
+      <div class="mj-wikihd"><h3>📖 专业百科</h3></div>
+      <div class="mj-search"><span class="ic">🔍</span><input id="mjSearch" placeholder="搜专业名，如 计算机 / 金融 / 临床医学"></div>
+      <div id="mjResults"></div>`;
+    const input = $('#mjSearch'), res = $('#mjResults'), keys0 = Object.keys(MAJORS);
+    const draw = q => {
+      const keys = q ? keys0.filter(k => k.indexOf(q) >= 0) : keys0;
+      if (!keys.length) { res.innerHTML = '<div class="mj-empty">没有匹配的专业</div>'; return; }
+      const byCat = {};
+      keys.forEach(k => { const c = MAJORS[k].ml || '其他'; (byCat[c] || (byCat[c] = [])).push(k); });
+      res.innerHTML = Object.keys(byCat).map(c =>
+        `<div class="mj-wcat">${c}（${byCat[c].length}）</div>` +
+        byCat[c].map(k => `<div class="mj-witem" data-k="${k}"><b>${k}</b><em>${MAJORS[k].lc || ''}</em></div>`).join('')
+      ).join('');
+      res.querySelectorAll('.mj-witem').forEach(el => el.onclick = () => renderMajorDetail(el.dataset.k, true));
+    };
+    draw('');
+    input.oninput = () => draw(input.value.trim());
+    $('#mjInner').scrollTop = 0;
+    openMjPanel();
+    setTimeout(() => input.focus(), 120);
+  }
 
   // -------- batch lines (特控线 / 本科线) --------
   function renderBatchLine() {
@@ -403,6 +475,11 @@
   $('#btnViewAll').onclick = () => { openAll(); closeSheet(); };
   $('#fabAll').onclick = () => { openAll(); closeSheet(); };
 
+  // 专业百科 + 详解面板
+  $('#btnWiki').onclick = () => { renderMajorWiki(); closeSheet(); };
+  $('#mjClose').onclick = closeMjPanel;
+  $('#mjMask').onclick = closeMjPanel;
+
   // all-list sort toggle
   $('#dwSort').querySelectorAll('button').forEach(b => b.onclick = () => {
     if (state.allSort === b.dataset.by) return;
@@ -417,10 +494,14 @@
   $('#sideDone').onclick = closeSheet;
   $('#sheetMask').onclick = closeSheet;
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeDrawer(); closeSheet(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('#mjPanel').classList.contains('show')) closeMjPanel();
+    else { closeModal(); closeDrawer(); closeSheet(); }
+  });
 
   // -------- init --------
   renderTrackSeg(); renderYearSeg(); syncHint(); setPresetActive(); fullRefresh();
 
-  if (location.hash === '#test') window.__t = { openDrawer, openModal, openAll, applyTrack, state, get result() { return curResult; } };
+  if (location.hash === '#test') window.__t = { openDrawer, openModal, openAll, applyTrack, lookupMajor, renderMajorDetail, renderMajorWiki, state, get result() { return curResult; } };
 })();

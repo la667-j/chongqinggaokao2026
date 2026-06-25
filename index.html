@@ -39,6 +39,7 @@
       <button class="view-all" id="btnViewAll">
         <span>📋 查看全部院校</span><i class="va-badge" id="vaCount"></i>
       </button>
+      <button class="view-all alt" id="btnWiki"><span>📖 专业百科</span></button>
       <div class="card">
         <div class="lab"><span class="dot"></span>位次区间</div>
         <div class="rank-io">
@@ -132,6 +133,13 @@
 </div>
 <div class="sheet-mask" id="sheetMask"></div>
 
+<!-- Major detail / wiki slide-over -->
+<div class="mjmask" id="mjMask"></div>
+<aside class="mjpanel" id="mjPanel">
+  <button class="x" id="mjClose">✕</button>
+  <div class="mj-inner" id="mjInner"></div>
+</aside>
+
 <!-- Modal -->
 <div class="mask" id="mask"></div>
 <div class="modal" id="modal">
@@ -154,6 +162,7 @@
 <script src="lib/echarts.min.js"></script>
 <script src="lib/china.js"></script>
 <script src="data.js"></script>
+<script src="majors.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
