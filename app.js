@@ -50,16 +50,27 @@
     return MAJORS[b] ? b : null;
   }
 
-  // -------- 收藏 / 我的志愿表（localStorage 持久化） --------
+  // -------- 收藏 / 我的志愿表（精确到专业，localStorage 持久化） --------
   let WISH = [];
-  try { WISH = (JSON.parse(localStorage.getItem('cqgk_wish') || '[]') || []).filter(w => w && w.t && w.c); } catch (e) { }
-  const isWished = (t, c) => WISH.some(w => w.t === t && w.c === c);
+  try { WISH = (JSON.parse(localStorage.getItem('cqgk_wish') || '[]') || []).filter(w => w && w.t && w.c && w.mn); } catch (e) { }
+  const isWished = (t, c, mn) => WISH.some(w => w.t === t && w.c === c && w.mn === mn);
   const schoolOf = (t, c) => (GK.tracks[t] ? GK.tracks[t].schools : []).find(s => s.c === c);
   function saveWish() { try { localStorage.setItem('cqgk_wish', JSON.stringify(WISH)); } catch (e) { } }
-  function toggleWish(t, c) {
-    const i = WISH.findIndex(w => w.t === t && w.c === c);
-    if (i >= 0) WISH.splice(i, 1); else WISH.push({ t, c });
+  function toggleWish(t, c, mn) {
+    const i = WISH.findIndex(w => w.t === t && w.c === c && w.mn === mn);
+    if (i >= 0) WISH.splice(i, 1); else WISH.push({ t, c, mn });
     saveWish(); updateWishUI();
+  }
+  // 找某专业在该校的投档分/位次（优先当前年份）
+  function majorInfo(w) {
+    const s = schoolOf(w.t, w.c); if (!s) return null;
+    const yrs = [String(state.year)].concat(Object.keys(s.m));
+    for (const y of yrs) {
+      const arr = s.m[y]; if (!arr) continue;
+      const m = arr.find(x => x[0] === w.mn);
+      if (m) return { s, name: w.mn, sc: m[1], rk: m[2], y: +y };
+    }
+    return { s, name: w.mn, sc: null, rk: null, y: null };
   }
   function toast(msg) {
     let el = $('#toast');
@@ -209,10 +220,8 @@
       <div class="bot">
         <div class="badges">${badgeHTML(r.s.t)}</div>
         <div class="mini">投档线 <b>${ys.mn}</b><i></i>匹配 <b class="hl">${r.count}</b> 专业</div>
-        <button class="wstar${isWished(TRACK, r.s.c) ? ' on' : ''}" data-wt="${TRACK}" data-wc="${r.s.c}" title="收藏到志愿表">★</button>
       </div>`;
     el.onclick = () => openModal(r.s);
-    el.querySelector('.wstar').onclick = e => { e.stopPropagation(); toggleWish(TRACK, r.s.c); };
     return el;
   }
 
@@ -266,10 +275,6 @@
     $('#mdProv').textContent = PROV[s.p].n + ' · ' + GK.tracks[TRACK].name;
     $('#mdTitle').textContent = s.n;
     $('#mdBadges').innerHTML = badgeHTML(s.t);
-    const wished = isWished(TRACK, s.c);
-    $('#mdStar').classList.toggle('on', wished);
-    $('#mdStar').textContent = wished ? '★ 已收藏' : '☆ 收藏';
-    renderTrend(s);
 
     const yg = $('#mdYears'); yg.innerHTML = '';
     YEARS.forEach(y => {
@@ -321,7 +326,7 @@
         <td><span class="mn">${m[0]}</span>${mk ? '<span class="mj-link">详解</span>' : ''}${hit ? '<span class="dim-pill">符合</span>' : ''}</td>
         <td class="r"><span class="sc">${m[1]}</span></td>
         <td class="r"><span class="rk">${fmt(m[2])}</span></td>`;
-      if (mk) tr.onclick = () => renderMajorDetail(mk, false);
+      if (mk) tr.onclick = () => renderMajorDetail(mk, { ctx: { t: TRACK, c: s.c, mn: m[0], sc: m[1], rk: m[2] } });
       body.appendChild(tr);
     }
   }
@@ -339,18 +344,24 @@
       ${b ? `<div class="it"><div class="row"><span>城镇私营单位</span><b>¥${b.toLocaleString()}</b></div><div class="bar b"><i style="width:${Math.min(100, b / CAP * 100)}%"></i></div></div>` : ''}`).join('');
   }
 
-  function renderMajorDetail(name, fromWiki) {
+  function renderMajorDetail(name, opts) {
+    opts = opts || {};
     const rec = MAJORS[name]; if (!rec) return;
+    const ctx = opts.ctx || null;
     const jyText = (rec.jy || '').split(/对口行业参考/)[0].replace(/[。；;\s]+$/, '').trim();
+    const on = ctx ? isWished(ctx.t, ctx.c, ctx.mn) : false;
+    const cs = ctx ? schoolOf(ctx.t, ctx.c) : null;
     $('#mjInner').innerHTML = `
-      ${fromWiki ? '<button class="mj-back" id="mjBack">← 返回专业百科</button>' : ''}
+      ${opts.fromWiki ? '<button class="mj-back" id="mjBack">← 返回专业百科</button>' : ''}
       <div class="mj-cat">${rec.ml || ''}${rec.lc ? ' · ' + rec.lc : ''}</div>
-      <h3 class="mj-name">${name}</h3>
+      <h3 class="mj-name">${ctx ? ctx.mn : name}</h3>
+      ${cs ? `<div class="mj-school">${PROV[cs.p].n} · ${cs.n}${ctx.sc ? ` · 投档 ${ctx.sc} · 位次 ${fmt(ctx.rk)}` : ''}</div>` : ''}
       <div class="mj-brief">
         ${rec.lc ? `<span>专业类：${rec.lc}</span>` : ''}
         ${rec.xz ? `<span>学制：${rec.xz}</span>` : ''}
         ${rec.xw ? `<span>${rec.xw}</span>` : ''}
       </div>
+      ${ctx ? `<button class="mj-fav${on ? ' on' : ''}" id="mjFav">${on ? '★ 已加入志愿表' : '☆ 收藏该专业到志愿表'}</button>` : ''}
       ${rec.nh ? `<div class="mj-sec"><div class="h">专业内涵</div><p>${rec.nh}</p></div>` : ''}
       ${rec.mb ? `<div class="mj-sec"><div class="h">培养目标</div><p>${rec.mb}</p></div>` : ''}
       ${rec.kc && rec.kc.length ? `<div class="mj-sec"><div class="h">核心课程</div><div class="mj-chips">${rec.kc.map(c => `<span>${c}</span>`).join('')}</div></div>` : ''}
@@ -358,7 +369,8 @@
         ${jyText ? `<p>${jyText}</p>` : ''}
         ${rec.sal && rec.sal.length ? `<div class="mj-sal">${salBars(rec.sal)}<div class="note">薪酬为对口行业年平均工资（行业口径，非专业口径）。来源：国家统计局《2024 年城镇单位就业人员年平均工资》。</div></div>` : ''}
       </div>`;
-    if (fromWiki) $('#mjBack').onclick = () => renderMajorWiki();
+    if (opts.fromWiki) $('#mjBack').onclick = () => renderMajorWiki();
+    if (ctx) $('#mjFav').onclick = () => { toggleWish(ctx.t, ctx.c, ctx.mn); renderMajorDetail(name, opts); };
     $('#mjInner').scrollTop = 0;
     openMjPanel();
   }
@@ -378,7 +390,7 @@
         `<div class="mj-wcat">${c}（${byCat[c].length}）</div>` +
         byCat[c].map(k => `<div class="mj-witem" data-k="${k}"><b>${k}</b><em>${MAJORS[k].lc || ''}</em></div>`).join('')
       ).join('');
-      res.querySelectorAll('.mj-witem').forEach(el => el.onclick = () => renderMajorDetail(el.dataset.k, true));
+      res.querySelectorAll('.mj-witem').forEach(el => el.onclick = () => renderMajorDetail(el.dataset.k, { fromWiki: true }));
     };
     draw('');
     input.oninput = () => draw(input.value.trim());
@@ -397,37 +409,9 @@
       `<span class="bl-item">本科线 <b>${ln.bk}</b> <em>(位次 ${fmt(ln.bkr)})</em></span>`;
   }
 
-  // -------- 三年投档位次走势 --------
-  function renderTrend(s) {
-    const el = $('#mdTrend');
-    const ys = YEARS.filter(y => s.y[y]);
-    if (ys.length < 2) { el.innerHTML = ''; return; }
-    const vals = ys.map(y => s.y[y].mnr);
-    const mn = Math.min(...vals), mx = Math.max(...vals);
-    const W = 132, H = 38, pad = 7;
-    const xs = ys.map((_, i) => pad + i * (W - 2 * pad) / (ys.length - 1));
-    const yOf = v => mx === mn ? H / 2 : pad + (v - mn) / (mx - mn) * (H - 2 * pad);
-    const pts = xs.map((x, i) => x + ',' + yOf(vals[i]).toFixed(1)).join(' ');
-    const dots = xs.map((x, i) => `<circle cx="${x.toFixed(1)}" cy="${yOf(vals[i]).toFixed(1)}" r="3" fill="#9fd2ff"/>`).join('');
-    const stable = (mx - mn) / mn <= 0.2;
-    el.innerHTML = `<div class="box">
-      <span class="t">三年投档位次</span>
-      <svg width="${W}" height="${H}"><defs><linearGradient id="trg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs>
-        <polyline points="${pts}" fill="none" stroke="url(#trg)" stroke-width="2" stroke-linejoin="round"/>${dots}</svg>
-      <span class="lbls">${ys.map((y, i) => `${String(y).slice(2)}′ ${fmt(vals[i])}`).join('　')}</span>
-      <span class="tag ${stable ? 'stable' : 'vol'}">${stable ? '相对稳定' : '波动较大'}</span>
-    </div>`;
-  }
-
-  // -------- 我的志愿表 --------
+  // -------- 我的志愿表（精确到专业） --------
   function updateWishUI() {
     $('#wlCount').textContent = WISH.length || '';
-    document.querySelectorAll('.wstar').forEach(b => b.classList.toggle('on', isWished(b.dataset.wt, b.dataset.wc)));
-    if (modalSchool) {
-      const on = isWished(TRACK, modalSchool.c);
-      $('#mdStar').classList.toggle('on', on);
-      $('#mdStar').textContent = on ? '★ 已收藏' : '☆ 收藏';
-    }
     if (state.drawerMode === 'wish') openWishlist();
   }
 
@@ -437,24 +421,23 @@
     $('#dwTools').classList.toggle('show', WISH.length > 0);
     $('#dwProv').textContent = '我的志愿表 · 本地保存';
     $('#dwTitle').firstChild.textContent = '我的志愿表 ';
-    $('#dwCount').textContent = `共 ${WISH.length} 所`;
+    $('#dwCount').textContent = `共 ${WISH.length} 个专业`;
     const box = $('#dwList'); box.innerHTML = '';
     if (!WISH.length) {
-      box.innerHTML = '<div class="wl-empty">还没有收藏院校。<br/>在院校卡片或详情页点 <b>★</b> 即可加入志愿表。</div>';
+      box.innerHTML = '<div class="wl-empty">还没有收藏专业。<br/>点开院校里带 <b>详解</b> 的专业（或专业百科），在详情页点 <b>☆ 收藏</b> 即可加入。</div>';
     } else {
       WISH.forEach((w, idx) => {
-        const s = schoolOf(w.t, w.c); if (!s) return;
-        const y = s.y[state.year] ? state.year : Object.keys(s.y).sort().pop();
-        const ys = s.y[y];
+        const info = majorInfo(w); if (!info) return;
+        const s = info.s;
         const el = document.createElement('div'); el.className = 'wl-card';
         el.innerHTML = `<div class="wl-ord">${idx + 1}</div>
           <div class="wl-main">
-            <div class="nm">${s.n}</div>
-            <div class="sub"><span class="pc">${PROV[s.p].n}</span><span>${GK.tracks[w.t].name}</span><span>投档位次 <b>${fmt(ys.mxr)}–${fmt(ys.mnr)}</b></span><span>投档 <b>${ys.mn}</b></span></div>
+            <div class="nm">${w.mn}</div>
+            <div class="sub"><span class="pc">${s.n}</span><span>${PROV[s.p].n} · ${GK.tracks[w.t].name}</span>${info.sc ? `<span>投档 <b>${info.sc}</b> · 位次 <b>${fmt(info.rk)}</b></span>` : ''}</div>
           </div>
           <div class="wl-ctrl"><button class="up" ${idx === 0 ? 'disabled' : ''}>▲</button><button class="dn" ${idx === WISH.length - 1 ? 'disabled' : ''}>▼</button></div>
           <button class="wl-del" title="移除">✕</button>`;
-        el.querySelector('.wl-main').onclick = () => openWishSchool(w, s);
+        el.querySelector('.wl-main').onclick = () => openWishMajor(w);
         el.querySelector('.up').onclick = () => moveWish(idx, -1);
         el.querySelector('.dn').onclick = () => moveWish(idx, 1);
         el.querySelector('.wl-del').onclick = () => { WISH.splice(idx, 1); saveWish(); updateWishUI(); };
@@ -468,23 +451,25 @@
     const j = i + d; if (j < 0 || j >= WISH.length) return;
     [WISH[i], WISH[j]] = [WISH[j], WISH[i]]; saveWish(); openWishlist();
   }
-  function openWishSchool(w, s) {
+  function openWishMajor(w) {
     if (w.t !== TRACK) { applyTrack(w.t); renderTrackSeg(); renderYearSeg(); fullRefresh(); }
-    openModal(s);
+    const key = lookupMajor(w.mn);
+    if (!key) return toast('该专业暂无详解');
+    const info = majorInfo(w);
+    renderMajorDetail(key, { ctx: { t: w.t, c: w.c, mn: w.mn, sc: info && info.sc, rk: info && info.rk } });
   }
 
   function wishRows() {
     return WISH.map((w, i) => {
-      const s = schoolOf(w.t, w.c); if (!s) return null;
-      const y = s.y[state.year] ? state.year : Object.keys(s.y).sort().pop();
-      const ys = s.y[y];
-      return { i: i + 1, track: GK.tracks[w.t].name, name: s.n, prov: PROV[s.p].n, tier: s.t, y, mn: ys.mn, mxr: ys.mxr, mnr: ys.mnr, nc: ys.nc };
+      const info = majorInfo(w); if (!info) return null;
+      const s = info.s;
+      return { i: i + 1, track: GK.tracks[w.t].name, school: s.n, major: w.mn, prov: PROV[s.p].n, tier: s.t, sc: info.sc, rk: info.rk, y: info.y };
     }).filter(Boolean);
   }
   function exportCSV() {
     const rows = wishRows(); if (!rows.length) return toast('志愿表为空');
-    const head = ['序号', '科类', '院校', '省份', '层次', '参考年份', '投档分', '最高分位次', '投档线位次', '录取专业数'];
-    const lines = [head.join(',')].concat(rows.map(r => [r.i, r.track, r.name, r.prov, r.tier, r.y, r.mn, r.mxr, r.mnr, r.nc].join(',')));
+    const head = ['序号', '科类', '院校', '专业', '省份', '层次', '参考年份', '投档分', '投档位次'];
+    const lines = [head.join(',')].concat(rows.map(r => [r.i, r.track, r.school, '"' + r.major + '"', r.prov, r.tier, r.y || '', r.sc == null ? '' : r.sc, r.rk == null ? '' : r.rk].join(',')));
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '我的志愿表.csv';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -492,33 +477,26 @@
   }
   function copyWish() {
     const rows = wishRows(); if (!rows.length) return toast('志愿表为空');
-    const txt = rows.map(r => `${r.i}. ${r.name}（${r.prov}·${r.track}）投档${r.mn} 位次${fmt(r.mxr)}-${fmt(r.mnr)}`).join('\n');
+    const txt = rows.map(r => `${r.i}. ${r.school}－${r.major}（${r.prov}·${r.track}）${r.sc != null ? '投档' + r.sc + ' 位次' + fmt(r.rk) : ''}`).join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('已复制志愿清单')).catch(() => toast('复制失败，请手动'));
     else toast('当前环境不支持复制');
   }
 
-  // -------- 院校对比 --------
+  // -------- 专业对比 --------
   function tierShort(t) {
     const l = levelsOf(t)[0];
     const cls = { '985': 'b985', '211': 'b211', '双一流': 'bsyl', '普通': '' }[l] || '';
     return `<span class="${cls}">${l === '普通' ? '普通' : l}</span>`;
   }
   function openCompare() {
-    const items = WISH.map(w => ({ w, s: schoolOf(w.t, w.c) })).filter(x => x.s);
-    if (items.length < 2) return toast('至少收藏 2 所院校才能对比');
-    let h = '<table><thead><tr><th class="rowh">院校</th><th>省份</th><th>层次</th>';
-    YEARS.forEach(y => h += `<th>${y} 投档分<br/>投档位次</th>`);
-    h += '<th>录取专业</th></tr></thead><tbody>';
-    items.forEach(({ w, s }) => {
-      h += `<tr><td class="rowh">${s.n}<div style="font-size:10px;color:var(--txt-mute);font-weight:600">${GK.tracks[w.t].name}</div></td>`;
-      h += `<td>${PROV[s.p].n}</td><td>${tierShort(s.t)}</td>`;
-      let last = null;
-      YEARS.forEach(y => {
-        const ys = s.y[y];
-        if (ys) { last = ys; h += `<td><span class="sn">${ys.mn}</span><div style="font-size:11px;color:var(--cyan)">${fmt(ys.mnr)}</div></td>`; }
-        else h += '<td>—</td>';
-      });
-      h += `<td>${last ? last.nc : '—'}</td></tr>`;
+    const rows = wishRows();
+    if (rows.length < 2) return toast('至少收藏 2 个专业才能对比');
+    let h = '<table><thead><tr><th class="rowh">专业</th><th>院校</th><th>省份</th><th>层次</th><th>投档分</th><th>投档位次</th></tr></thead><tbody>';
+    rows.forEach(r => {
+      h += `<tr><td class="rowh">${r.major}<div style="font-size:10px;color:var(--txt-mute);font-weight:600">${r.track}</div></td>`;
+      h += `<td>${r.school}</td><td>${r.prov}</td><td>${tierShort(r.tier)}</td>`;
+      h += `<td><span class="sn">${r.sc == null ? '—' : r.sc}</span></td>`;
+      h += `<td style="color:var(--cyan);font-weight:700">${r.rk == null ? '—' : fmt(r.rk)}</td></tr>`;
     });
     h += '</tbody></table>';
     $('#cmpBody').innerHTML = h;
@@ -636,7 +614,6 @@
 
   // 我的志愿表 + 收藏 + 对比
   $('#btnWish').onclick = () => { openWishlist(); closeSheet(); };
-  $('#mdStar').onclick = () => { if (modalSchool) toggleWish(TRACK, modalSchool.c); };
   $('#wlCsv').onclick = exportCSV;
   $('#wlCopy').onclick = copyWish;
   $('#wlClear').onclick = () => { if (WISH.length && confirm('清空我的志愿表？')) { WISH = []; saveWish(); updateWishUI(); } };

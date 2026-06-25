@@ -366,12 +366,10 @@ tbody tr.has-mj{cursor:pointer}
 tbody tr.has-mj:hover .mn{color:var(--violet)}
 
 /* ===== 收藏 / 我的志愿表 / 院校对比 ===== */
-.wstar{flex:none;width:26px;height:26px;border:0;background:none;color:var(--txt-mute);font-size:16px;cursor:pointer;line-height:1;border-radius:7px;transition:.15s}
-.wstar:hover{color:var(--t211);background:rgba(251,191,36,.13)}
-.wstar.on{color:var(--t211)}
-.md-star{position:absolute;top:20px;right:64px;border:1px solid var(--stroke);background:var(--panel);color:var(--txt-dim);font:700 12.5px/1 inherit;padding:9px 13px;border-radius:9px;cursor:pointer;transition:.15s}
-.md-star:hover{border-color:var(--stroke-2);color:var(--txt)}
-.md-star.on{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.42);color:var(--t211)}
+.mj-school{font-size:12.5px;color:var(--txt-dim);font-weight:600;margin:2px 0 12px}
+.mj-fav{display:inline-flex;align-items:center;gap:7px;margin-bottom:4px;background:var(--panel);border:1px solid var(--stroke);color:var(--txt-dim);font:700 13px/1 inherit;padding:11px 18px;border-radius:11px;cursor:pointer;transition:.15s}
+.mj-fav:hover{border-color:var(--stroke-2);color:var(--txt)}
+.mj-fav.on{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.42);color:var(--t211)}
 
 .dw-tools{display:none;gap:7px;padding:13px 16px 0;flex-wrap:wrap}
 .dw-tools.show{display:flex}
@@ -395,15 +393,6 @@ tbody tr.has-mj:hover .mn{color:var(--violet)}
 .wl-del:hover{color:var(--t985);background:rgba(251,111,146,.13)}
 .wl-empty{text-align:center;color:var(--txt-mute);font-size:13px;padding:50px 24px;line-height:1.9}
 .wl-empty b{color:var(--txt-dim)}
-
-.md-trend{padding:18px 26px 0}
-.md-trend .box{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:11px 15px}
-.md-trend .t{font-size:11.5px;color:var(--txt-dim);font-weight:700;white-space:nowrap}
-.md-trend svg{flex:none}
-.md-trend .lbls{font-size:10.5px;color:var(--txt-mute);font-variant-numeric:tabular-nums}
-.md-trend .tag{margin-left:auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;white-space:nowrap}
-.md-trend .tag.stable{color:var(--ok);background:rgba(52,211,153,.14)}
-.md-trend .tag.vol{color:var(--t211);background:rgba(251,191,36,.14)}
 
 .cmp-mask{position:fixed;inset:0;z-index:60;background:rgba(3,5,12,.66);backdrop-filter:blur(6px);display:none;opacity:0;transition:.2s}
 .cmp-mask.show{display:block;opacity:1}
@@ -538,8 +527,6 @@ tbody tr.has-mj:hover .mn{color:var(--violet)}
   .mj-inner{padding:24px 16px calc(28px + env(safe-area-inset-bottom))}
   .mj-name{font-size:21px}
 
-  .md-trend{padding:14px 16px 0}
-  .md-star{position:static;margin-top:12px}
   .cmp-modal{width:96vw;max-height:90vh}
   .cmp-hd{padding:16px}
 }
